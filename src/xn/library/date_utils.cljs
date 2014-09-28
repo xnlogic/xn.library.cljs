@@ -7,9 +7,6 @@
     cljs.reader)
   (:refer-clojure :exclude [second]))
 
-; NOTE: (dw 14/6) The current implementation of DateTime is compatible with js/Date,
-; but in the development branch that compatibility has been discarded.
-
 (defn ->parse-date [& fs]
   (let [formatters (map #(cond (string? %) (ftime/formatter %)
                                (keyword? %) (ftime/formatters %)
