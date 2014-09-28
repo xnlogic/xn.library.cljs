@@ -1,9 +1,9 @@
 (ns xn.library.date-utils
   (:require
     [cljs-time.core :as time :refer [year month day hour minute second milli]]
-    cljs-time.coerce
-    goog.date.DateTime
+    [cljs-time.local :as ltime]
     [cljs-time.format :as ftime]
+    goog.date.DateTime
     cljs.reader)
   (:refer-clojure :exclude [second]))
 
@@ -16,7 +16,7 @@
       (cond
         (time/date? s) s
         s (if-let [r (first
-                       (keep #(try (ftime/parse % s)
+                       (keep #(try (ftime/parse-local % s)
                                    (catch js/Error _))
                              formatters))]
             r
@@ -28,7 +28,7 @@
                         :else f)]
     (fn [date]
       (when date
-        (ftime/unparse formatter date)))))
+        (ftime/unparse-local formatter date)))))
 
 (defn date+time [d t]
   (cond (and d t) (time/date-time (year d) (month d) (day d)
@@ -40,7 +40,8 @@
   (when d (.getTime d)))
 
 (defn ms->date [i]
-  (when i (cljs-time.coerce/from-long i)))
+  (when i
+    (doto (ltime/local-now) (.setTime i))))
 
 (defn date->min [d]
   (when d (/ (date->ms d) 60000)))
@@ -73,14 +74,15 @@
 (defn minutes-from-midnight [start-time]
   (when start-time
     (let [midnight (time/at-midnight start-time)]
+
       (if (time/= start-time midnight)
         0
         (time/in-minutes (time/interval midnight start-time))))))
 
 (defn at-hour [d h]
   (when d
-    (time/date-time (year d) (month d) (day d) h (minute d) (second d) (milli d))))
+    (time/local-date-time (year d) (month d) (day d) h (minute d) (second d) (milli d))))
 
 (defn at-minute [d m]
   (when d
-    (time/date-time (year d) (month d) (day d) (hour d) m (second d) (milli d))))
+    (time/local-date-time (year d) (month d) (day d) (hour d) m (second d) (milli d))))

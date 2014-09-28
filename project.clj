@@ -3,7 +3,7 @@
   :url "http://xnlogic.com"
 
   :dependencies [[org.clojure/clojure "1.6.0"]
-                 [org.clojure/clojurescript "0.0-2342"]
+                 [org.clojure/clojurescript "0.0-2356"]
                  [om "0.7.3"]
                  [com.andrewmcveigh/cljs-time "0.2.1"]]
 
