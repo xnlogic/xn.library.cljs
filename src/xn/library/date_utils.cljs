@@ -3,6 +3,7 @@
     [cljs-time.core :as time :refer [year month day hour minute second milli]]
     [cljs-time.local :as ltime]
     [cljs-time.format :as ftime]
+    goog.date.UtcDateTime
     goog.date.DateTime
     cljs.reader)
   (:refer-clojure :exclude [second]))
@@ -30,7 +31,9 @@
       (when date
         (ftime/unparse-local formatter date)))))
 
-(defn date+time [d t]
+(defn date+time
+  "Combine the date part of d with the time part of t (both are cljs-time date or date-time)"
+  [d t]
   (cond (and d t) (time/date-time (year d) (month d) (day d)
                                   (hour t) (minute t) (second t) (milli t))
         d (time/date-time (year d) (month d) (day d))
@@ -79,10 +82,30 @@
         0
         (time/in-minutes (time/interval midnight start-time))))))
 
+(defn utc? [d]
+  (instance? goog.date.DateTime d))
+
+(defn local? [d]
+  (instance? goog.date.DateTime d))
+
+(defn should-be-utc [d]
+  (if (local? d)
+    (time/date-time (year d) (month d) (day d) (hour d) (minute d) (second d) (milli d))
+    d))
+
+(defn should-be-local [d]
+  (if (utc? d)
+    (time/local-date-time (year d) (month d) (day d) (hour d) (minute d) (second d) (milli d))
+    d))
+
 (defn at-hour [d h]
-  (when d
-    (time/local-date-time (year d) (month d) (day d) h (minute d) (second d) (milli d))))
+  (cond (local? d)
+        (time/local-date-time (year d) (month d) (day d) h (minute d) (second d) (milli d))
+        (utc? d)
+        (time/date-time (year d) (month d) (day d) h (minute d) (second d) (milli d))))
 
 (defn at-minute [d m]
-  (when d
-    (time/local-date-time (year d) (month d) (day d) (hour d) m (second d) (milli d))))
+  (cond (local? d)
+        (time/local-date-time (year d) (month d) (day d) (hour d) m (second d) (milli d))
+        (utc? d)
+        (time/date-time (year d) (month d) (day d) (hour d) m (second d) (milli d))))
