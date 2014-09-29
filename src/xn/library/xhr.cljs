@@ -1,8 +1,4 @@
-(ns ^{:doc "Make network requests.
-
-            Loosely based on:
-            https://github.com/brentonashworth/one
-              src/lib/cljs/one/browser/remote.cljs"}
+(ns ^{:doc "Make network requests."}
   xn.library.xhr
   (:require goog.net.XhrManager
             [cljs.core.async :as async :refer [<! >! chan alts! put!]]
