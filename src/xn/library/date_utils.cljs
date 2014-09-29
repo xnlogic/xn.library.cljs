@@ -31,14 +31,6 @@
       (when date
         (ftime/unparse-local formatter date)))))
 
-(defn date+time
-  "Combine the date part of d with the time part of t (both are cljs-time date or date-time)"
-  [d t]
-  (cond (and d t) (time/date-time (year d) (month d) (day d)
-                                  (hour t) (minute t) (second t) (milli t))
-        d (time/date-time (year d) (month d) (day d))
-        t (time/today-at (hour t) (minute t) (second t) (milli t))))
-
 (defn date->ms [d]
   (when d (.getTime d)))
 
@@ -83,7 +75,7 @@
         (time/in-minutes (time/interval midnight start-time))))))
 
 (defn utc? [d]
-  (instance? goog.date.DateTime d))
+  (instance? goog.date.UtcDateTime d))
 
 (defn local? [d]
   (instance? goog.date.DateTime d))
@@ -109,3 +101,12 @@
         (time/local-date-time (year d) (month d) (day d) (hour d) m (second d) (milli d))
         (utc? d)
         (time/date-time (year d) (month d) (day d) (hour d) m (second d) (milli d))))
+
+(defn date+time
+  "Combine the date part of d with the time part of t (both are cljs-time date or date-time)"
+  [d t]
+  (cond (and d t) (time/local-date-time (year d) (month d) (day d)
+                                        (hour t) (minute t) (second t) (milli t))
+        d (time/local-date-time (year d) (month d) (day d))
+        t (should-be-local (time/today-at (hour t) (minute t) (second t) (milli t)))))
+
