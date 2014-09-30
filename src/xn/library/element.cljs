@@ -14,13 +14,13 @@
 
 
 (defn table
-  "Basic structure: head-row is a vector of cell contents. Rows is a vector of
-   vectors of cell contents.
+  "Basic structure:
+     head-rows and rows are both a vector of vectors of cell contents.
 
-   A cell contents can be either something renderable or a 2 element vector of
-   React opts and something renderable [{:className etc} renderable].
+   A 'cell contents' can be either something renderable or a 2 element vector
+   of React opts and something renderable [{:className etc} renderable].
 
-   Rows can be annotated with React opts like ^{:classname etc} [row ...]"
+   Any head rows or row can be annotated with React opts like ^{:className etc} [row ...]"
   ([rows] (table nil nil rows))
   ([head-rows rows] (table nil head-rows rows))
   ([opts head-rows rows]
