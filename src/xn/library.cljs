@@ -1,5 +1,8 @@
 (ns xn.library)
 
+(defn reduce! [f o c]
+  (persistent! (reduce f (transient o) c)))
+
 (defn grouped-by
   "A transducer that acts like (seq (group-by f coll))"
   [f]
