@@ -3,6 +3,15 @@
             [om.dom :as dom :include-macros true]))
 
 
+(defn event-value
+  ([e]
+   (.. e -target -value))
+  ([f e]
+   (if f
+     (f (event-value e))
+     (event-value e))))
+
+
 (defn button
   ([f body]
    (button nil f body))

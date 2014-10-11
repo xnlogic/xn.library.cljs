@@ -110,3 +110,5 @@
         d (time/local-date-time (year d) (month d) (day d))
         t (should-be-local (time/today-at (hour t) (minute t) (second t) (milli t)))))
 
+(def max-date (max-by date->ms time/date?))
+

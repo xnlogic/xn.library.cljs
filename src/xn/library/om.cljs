@@ -12,3 +12,6 @@
   (om/update-state! owner (fn [state] (apply f state opts))))
 
 
+(defn node-width [owner name]
+  (-> (om/get-node owner name) gstyle/getSize (.-width)))
+
