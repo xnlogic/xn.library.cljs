@@ -1,5 +1,6 @@
 (ns xn.library.om
-  (:require [om.core :as om]))
+  (:require [om.core :as om]
+            [goog.style :as gstyle]))
 
 (def cursor? om/cursor?)
 
