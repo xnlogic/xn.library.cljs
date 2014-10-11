@@ -16,3 +16,6 @@
 (defn node-width [owner name]
   (-> (om/get-node owner name) gstyle/getSize (.-width)))
 
+(defn test-env? []
+  (boolean (re-find #"PhantomJS" js/navigator.userAgent)))
+

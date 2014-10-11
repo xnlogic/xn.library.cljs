@@ -68,3 +68,7 @@
 (defn ensure-seq [x]
   (cond (sequential? x) x
         x [x]))
+
+
+(defn blank->nil [s]
+  (if (re-find #"^\s*$" s) nil s))
