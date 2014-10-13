@@ -24,6 +24,9 @@
       (show k el)
       (hide k))))
 
+(defn remove-popup [owner]
+  (let [k (om/get-state owner ::key)]
+    (hide k)))
 
 (defn- show-popups [cur owner]
   (reify
