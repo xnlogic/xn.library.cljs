@@ -3,7 +3,7 @@
             [om.dom :as dom :include-macros true]
             [xn.library.om :refer [swap-state!]]))
 
-(def ^{:private true} active-popups (atom {}))
+(defonce ^{:private true} active-popups (atom {}))
 
 (defn show [key el]
   (swap! active-popups assoc key el)
