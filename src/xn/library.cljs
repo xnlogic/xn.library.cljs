@@ -29,8 +29,10 @@
 
 (defn dissoc-in
   "Disassociates a value in a nested associative structure, where ks is a
-  sequence of keys and returns a new nested structure.
-  If any levels do not exist, hash-maps will be created. If "
+   sequence of keys and returns a new nested structure.  If any levels do not
+   exist, hash-maps will be created. If a resulting map is empty, dissoc it,
+   too, so that you can remove a whole chain of single-key maps in one
+   statement."
   [m [k & ks]]
   (let [f #(if (and (nil? %) (or (map? m) (nil? m)))
              (dissoc m k)
