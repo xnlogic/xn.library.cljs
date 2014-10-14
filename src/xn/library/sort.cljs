@@ -26,7 +26,9 @@
   (comp (partial * -1) compare))
 
 
-(defn- compare-parseInt [a b]
+(defn- compare-parseInt
+  "Compares strings that can be parsed as integers"
+  [a b]
   (if (blank? a)
     (if (blank? b) 0 -1)
     (if (blank? b)
@@ -34,7 +36,9 @@
       (compare (js/parseInt a) (js/parseInt b)))))
 
 
-(defn compare-numbered* [a b]
+(defn compare-numbered*
+  "Intelligently compares strings that contain mixed numbers and other characters"
+  [a b]
   (reduce (fn [_ [[_ a-s a-n] [_ b-s b-n]]]
             (let [s (compare a-s b-s)]
               (if (zero? s)
@@ -51,10 +55,7 @@
 
 (def compare-ascending (nil-at-end (safe compare)))
 (def compare-numbered (nil-at-end (safe compare-numbered*)))
-
-
-(defn compare-descending [a b]
-  ((comp #(* -1 %) compare-ascending) a b))
+(def compare-descending (rev compare-ascending))
 
 
 (defn record-comparator
