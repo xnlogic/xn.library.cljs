@@ -1,5 +1,27 @@
 (ns xn.library
+  (:require [clojure.string :refer [blank?]])
   (:import [goog.ui IdGenerator]))
+
+
+(deftype Volatile [^:mutable data]
+  IDeref
+  (-deref [_] data)
+
+  IReset
+  (-reset! [_ new-value]
+    (set! data new-value))
+
+  ISwap
+  (-swap! [o f] (set! data (f data)))
+  (-swap! [o f a] (set! data (f data a)))
+  (-swap! [o f a b] (set! data (f data a b)))
+  (-swap! [o f a b xs] (set! data (apply f data a b xs))))
+
+
+(defn volatile
+  "Like atom but stripped of all unneccessary features. Meant for internal use within a function."
+  [data]
+  (Volatile. data))
 
 
 (defn reduce! [f o c]
@@ -10,13 +32,16 @@
   "A transducer that acts like (seq (group-by f coll))"
   [f]
   (fn [rf]
-    (let [group (atom (array-map))]
+    (let [group (volatile (transient (array-map)))]
       (fn
         ([] (rf))
-        ([result] (rf (reduce rf result @group)))
+        ([result] (rf (reduce rf result (persistent! @group))))
         ([result x]
-         ; TODO use update on next cljs version upgrade
-         (swap! group update-in [(f x)] (fn [v] (if v (conj v x) [x])))
+         (-swap! group (fn [g]
+                        (let [k (f x)]
+                          (if-let [v (g k)]
+                            (assoc! g k (conj v x))
+                            (assoc! g k [x])))))
          result)))))
 
 
@@ -27,12 +52,12 @@
         (map (fn [[k vals]] (last vals))))"
   ([f]
    (fn [rf]
-     (let [matches (atom (array-map))]
+     (let [matches (volatile (transient (array-map)))]
        (fn
          ([] (rf))
-         ([result] (rf (reduce rf result (vals @matches))))
+         ([result] (rf (reduce rf result (vals (persistent! @matches)))))
          ([result x]
-          (swap! matches assoc (f x) x)
+          (-swap! matches assoc! (f x) x)
           result)))))
   ([f coll]
    (sequence f coll)))
@@ -71,4 +96,4 @@
 
 
 (defn blank->nil [s]
-  (if (re-find #"^\s*$" s) nil s))
+  (if (blank? s) nil s))
