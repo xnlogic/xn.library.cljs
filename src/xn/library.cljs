@@ -60,7 +60,7 @@
           (-swap! matches assoc! (f x) x)
           result)))))
   ([f coll]
-   (sequence f coll)))
+   (sequence (lasts-by f) coll)))
 
 
 (defn guid []
