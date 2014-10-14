@@ -3,7 +3,7 @@
 
 
 (defn nil>
-  "Wrap a conversion function so that it puts nils at the end"
+  "Wrap a comparison function so that it puts nils at the end"
   [compare]
   (fn [a b]
     (cond (= a b) 0
@@ -13,7 +13,7 @@
 
 
 (defn =e=
-  "Wrap a conversion function so that if exception treat as equal"
+  "Wrap a comparison function so that if exception treat as equal"
   [compare]
   (fn [a b]
     (try (compare a b)
