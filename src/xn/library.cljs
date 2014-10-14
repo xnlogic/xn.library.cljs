@@ -27,6 +27,19 @@
 (defn reduce! [f o c]
   (persistent! (reduce f (transient o) c)))
 
+(defn dissoc-in
+  "Disassociates a value in a nested associative structure, where ks is a
+  sequence of keys and returns a new nested structure.
+  If any levels do not exist, hash-maps will be created. If "
+  [m [k & ks]]
+  (let [f #(if (and (nil? %) (or (map? m) (nil? m)))
+             (dissoc m k)
+             (assoc m k %))
+        m (if ks
+            (f (dissoc-in (get m k) ks))
+            (f nil))]
+    (when (seq m) m)))
+
 
 (defn grouped-by
   "A transducer that acts like (seq (group-by f coll))"
@@ -38,10 +51,10 @@
         ([result] (rf (reduce rf result (persistent! @group))))
         ([result x]
          (-swap! group (fn [g]
-                        (let [k (f x)]
-                          (if-let [v (g k)]
-                            (assoc! g k (conj v x))
-                            (assoc! g k [x])))))
+                         (let [k (f x)]
+                           (if-let [v (get g k)]
+                             (assoc! g k (conj v x))
+                             (assoc! g k [x])))))
          result)))))
 
 

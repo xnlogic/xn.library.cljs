@@ -9,7 +9,8 @@
                  [com.andrewmcveigh/cljs-time "0.2.1"]
                  [com.cognitect/transit-cljs "0.8.188"]]
 
-  :plugins [[lein-cljsbuild "1.0.3"]]
+  :plugins [[lein-cljsbuild "1.0.3"]
+            [com.cemerick/clojurescript.test "0.3.1"]]
 
   :source-paths ["src"]
 
@@ -20,4 +21,11 @@
                 :output-to "target/xn.library.cljs.js"
                 :output-dir "out"
                 :optimizations :none
-                :source-map true}}]})
+                :source-map true}}
+             {:id "test"
+              :source-paths ["src" "test"]
+              :notify-command ["phantomjs" :cljs.test/runner "target/xn_library_test.js"]
+              :compiler {
+                :output-to "target/xn_library_test.js"
+                :pretty-print true
+                :optimizations :whitespace}}]})
