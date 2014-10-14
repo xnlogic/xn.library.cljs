@@ -2,7 +2,7 @@
   (:require [clojure.string :as s :refer [capitalize blank?]]))
 
 
-(defn nil>
+(defn nil-at-end
   "Wrap a comparison function so that it puts nils at the end"
   [compare]
   (fn [a b]
@@ -12,7 +12,7 @@
           :else (compare a b))))
 
 
-(defn =e=
+(defn safe
   "Wrap a comparison function so that if exception treat as equal"
   [compare]
   (fn [a b]
@@ -49,8 +49,8 @@
                (concat (when (string? b) (re-seq #"(\D*)(\d*)" b)) [nil]))))
 
 
-(def compare-ascending (nil> (=e= compare)))
-(def compare-numbered (nil> (=e= compare-numbered*)))
+(def compare-ascending (nil-at-end (safe compare)))
+(def compare-numbered (nil-at-end (safe compare-numbered*)))
 
 
 (defn compare-descending [a b]
