@@ -59,15 +59,15 @@
 
 
 (defn record-comparator
-  "with is a map {field name -> comparator function}"
+  "field-comparator is a map {field name -> comparator function}"
   ([x] (if (map? x)
          (record-comparator (:order x [:display_name]) x)
          (record-comparator x {})))
-  ([fields {:keys [reverse with]}]
+  ([fields {:keys [reverse field-comparator]}]
    (fn [a b]
      (loop [[k & ks] fields]
        (if k
-         (let [c (or (get with k) compare-numbered)
+         (let [c (or (get field-comparator k) compare-numbered)
                c (if (get reverse k) (comp - c) c)
                ord (c (get a k) (get b k))]
            (if (zero? ord) (recur ks) ord))
