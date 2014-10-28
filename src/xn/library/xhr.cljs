@@ -19,7 +19,7 @@
 
 (def ^:private
   *xhr-manager*
-  (goog.net.XhrManager. nil {"accept" "text/edn"} nil nil 5000))
+  (goog.net.XhrManager. nil {} nil nil 5000))
 
 
 (defn- handle-response [url start-time out interchange callback]
@@ -42,6 +42,11 @@
       (go (>! out result)))))
 
 
+(def mime-type {:xml "application/xml"
+                :json "application/json"
+                :json-transit "application/transit+json"})
+
+
 (defn request
   "Asynchronously make a network request for the resource at url.  The
    entry for `:event` contains an instance of the `goog.net.XhrManager.Event`.
@@ -60,8 +65,11 @@
                xhr-chan interchange callback]
         :or   {method   :get
                out (chan)
-               retries  0 }}]
-  (let [start-time (js/Date.)]
+               retries 0
+               interchange :json}}]
+  (let [start-time (js/Date.)
+        headers (assoc headers :accept (mime-type interchange))]
+
     ; Currently does not specify an interchange format to the server
     (when-let [xhr (.send *xhr-manager*
                           (or id (js/Math.random))
