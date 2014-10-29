@@ -26,9 +26,12 @@
   (fn [event]
     (let [r (.-target event)
           data (case interchange
-                 :json (try (js->clj (.getResponseJson r) :keywordize-keys true) (catch js/Error e nil))
-                 :json-transit (try (t/read (t/reader :json) (.getResponse r)) (catch js/Error e nil))
-                 :transit (try (t/read (t/reader :json) (.getResponse r)) (catch js/Error e nil)))
+                 :transit (try (t/read (t/reader :json) (.getResponse r))
+                               (catch js/Error e nil))
+                 :json (try (js->clj (.getResponseJson r) :keywordize-keys true)
+                            (catch js/Error e nil))
+                 :json-transit (try (t/read (t/reader :json) (.getResponse r))
+                                    (catch js/Error e nil)))
           status (.getStatus r)
           result (if data {:data data} {:body (.getResponse r)})
           result (merge result
@@ -41,10 +44,11 @@
       (when callback (callback nil (or data (.getResponse r))))
       (go (>! out result)))))
 
-
+; json-transit is using json but with transit for parsing
 (def mime-type {:xml "application/xml"
                 :json "application/json"
-                :json-transit "application/transit+json"})
+                :json-transit "application/json"
+                :transit "application/transit+json"})
 
 
 (defn request
@@ -66,7 +70,7 @@
         :or   {method   :get
                out (chan)
                retries 0
-               interchange :json}}]
+               interchange :json-transit}}]
   (let [start-time (js/Date.)
         headers (assoc headers :accept (mime-type interchange))]
 
