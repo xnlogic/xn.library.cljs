@@ -2,7 +2,8 @@
   xn.library.xhr
   (:require goog.net.XhrManager
             [cljs.core.async :as async :refer [<! >! chan alts! put!]]
-            [cognitect.transit :as t])
+            [cognitect.transit :as t]
+            [xn.library.date-utils :refer [ms->date]])
   (:require-macros
     [cljs.core.async.macros :as m :refer [go]]))
 
@@ -21,17 +22,30 @@
   *xhr-manager*
   (goog.net.XhrManager. nil {} nil nil 5000))
 
+(defmulti parser (fn [interchange opts] interchange))
 
-(defn- handle-response [url start-time out interchange callback]
+(defmethod parser :transit [_ {:keys [handlers]}]
+  (let [reader
+        (t/reader :json
+                  {:handlers
+                   (merge {"m" #(ms->date (if (number? %) % (js/parseInt %)))}
+                          handlers)})]
+    (fn [response]
+      (try (t/read reader (.getResponse response))
+           (catch js/Error e nil)))))
+
+(defmethod parser :json-transit [_ opts]
+  (parser :transit opts))
+
+(defmethod parser :json [_ opts]
+  (fn [response]
+    (try (js->clj (.getResponseJson response) :keywordize-keys true)
+         (catch js/Error e nil))))
+
+(defn- handle-response [url start-time out f callback]
   (fn [event]
     (let [r (.-target event)
-          data (case interchange
-                 :transit (try (t/read (t/reader :json) (.getResponse r))
-                               (catch js/Error e nil))
-                 :json (try (js->clj (.getResponseJson r) :keywordize-keys true)
-                            (catch js/Error e nil))
-                 :json-transit (try (t/read (t/reader :json) (.getResponse r))
-                                    (catch js/Error e nil)))
+          data (f r)
           status (.getStatus r)
           result (if data {:data data} {:body (.getResponse r)})
           result (merge result
@@ -70,7 +84,8 @@
         :or   {method   :get
                out (chan)
                retries 0
-               interchange :json-transit}}]
+               interchange :json-transit}
+        :as opts}]
   (let [start-time (js/Date.)
         headers (assoc headers :accept (mime-type interchange))]
 
@@ -82,7 +97,7 @@
                           body
                           (into {} (map (fn [[k v]] [(name k) v]) headers))
                           priority
-                          (handle-response url start-time out interchange callback)
+                          (handle-response url start-time out (parser interchange opts) callback)
                           retries)]
       (when xhr-chan (go (>! xhr-chan xhr)))
       (if (or timeout cancel-on)
