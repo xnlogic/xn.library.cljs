@@ -64,17 +64,32 @@
 (defn- handle-response [url start-time out f callback]
   (fn [event]
     (let [r (.-target event)
-          data (f r)
           status (.getStatus r)
-          result (if data {:data data} {:body (.getResponse r)})
-          result (merge result
-                      {:success? (.isSuccess r)
+          result (try {:success? (.isSuccess r)
+                       :data (f r)
                        :state (if (.isSuccess r) :complete :failed)
                        :url url
-                       :status (if (zero? status) 500 status)
+                       :status (if (zero? status) 510 status)
                        :status-text (if (zero? status) "Server Unavailable" (.getStatusText r))
-                       :msecs (- (.getTime (js/Date.)) start-time)})]
-      (when callback (callback nil (or data (.getResponse r))))
+                       :msecs (- (.getTime (js/Date.)) start-time)}
+                      (catch js/Error e
+                        (js/console.error "response hondler exception" e)
+                        {:success? false
+                         :error e
+                         :body (.getResponse r)
+                         :url url
+                         :status (if (zero? status) 510 status)
+                         :status-text (if (zero? status) (ex-message e) (.getStatusText r))
+                         :msecs (- (.getTime (js/Date.)) start-time)}))]
+      (swap! callback (fn [f]
+                        (when f
+                          (if (:success? result)
+                            (f nil (:data result))
+                            (f (if-let [e (:error result)]
+                                 (ex-info (ex-message e) result e)
+                                 (ex-info (:status-text result) result))
+                               nil)))
+                        nil))
       (go (>! out result)))))
 
 ; json-transit is using json but with transit for parsing
@@ -109,6 +124,8 @@
         headers (if-let [t (mime-type interchange)]
                   (assoc headers :accept t :content-type t)
                   headers)
+        ; ensure callback can only be called once
+        callback (atom callback)]
     ; Currently does not specify an interchange format to the server
     (when-let [xhr (.send *xhr-manager*
                           (or id (js/Math.random))
@@ -135,19 +152,21 @@
                                :state :failed
                                :url url
                                :status 408
-                               :status-text "Request Timeout"
+                               :status-text "Client Request Timeout"
                                :msecs (- (js/Date.) start-time)}
                               {:success? false
                                :state :failed
                                :url url
-                               :status (when-not (get cancel-on c) 500)
+                               :status (when-not (get cancel-on c) 510)
                                :status-text (str "Request Cancelled: "
                                                  (if-let [reason (get cancel-on c)]
                                                    reason
                                                    "Server Unavailable"))
                                :cancelled-by c
                                :msecs (- (js/Date.) start-time)})]
-                    (when callback (callback (ex-info (:status-text err) err) nil))
+                    (swap! callback (fn [f]
+                                      (when (f (ex-info (:status-text err) err) nil))
+                                      nil))
                     (>! out2 err))))))
           out2)
         out))))
