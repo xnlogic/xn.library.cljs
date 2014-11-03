@@ -3,7 +3,7 @@
   (:require goog.net.XhrManager
             [cljs.core.async :as async :refer [<! >! chan alts! put!]]
             [cognitect.transit :as t]
-            [xn.library.date-utils :refer [ms->date]])
+            [xn.library.date-utils :refer [date-read-handlers date-write-handlers]])
   (:require-macros
     [cljs.core.async.macros :as m :refer [go]]))
 
@@ -27,20 +27,39 @@
 (defmethod parser :transit [_ {:keys [handlers]}]
   (let [reader
         (t/reader :json
-                  {:handlers
-                   (merge {"m" #(ms->date (if (number? %) % (js/parseInt %)))}
-                          handlers)})]
+                  {:handlers (merge date-read-handlers handlers)})]
     (fn [response]
-      (try (t/read reader (.getResponse response))
-           (catch js/Error e nil)))))
+      (t/read reader (.getResponse response)))))
 
 (defmethod parser :json-transit [_ opts]
   (parser :transit opts))
 
 (defmethod parser :json [_ opts]
   (fn [response]
-    (try (js->clj (.getResponseJson response) :keywordize-keys true)
-         (catch js/Error e nil))))
+    (js->clj (.getResponseJson response) :keywordize-keys true)))
+
+(defmethod parser :raw [_ _]
+  (fn [response]
+    (.getResponse response)))
+
+(defmulti unparser (fn [interchange opts] interchange))
+
+(defmethod unparser :transit [_ {:keys [handlers]}]
+  (let [writer
+        (t/writer :json
+                  {:handlers (merge date-write-handlers handlers)})]
+    (fn [body]
+      (when body (t/write writer body)))))
+
+(defmethod unparser :json [_ opts]
+  (fn [body]
+    (when body (.stringify js/JSON (clj->js body)))))
+
+(defmethod unparser :json-transit [_ opts]
+  (unparser :json opts))
+
+(defmethod unparser :raw [_ _] str)
+
 
 (defn- handle-response [url start-time out f callback]
   (fn [event]
@@ -87,14 +106,15 @@
                interchange :json-transit}
         :as opts}]
   (let [start-time (js/Date.)
-        headers (assoc headers :accept (mime-type interchange))]
-
+        headers (if-let [t (mime-type interchange)]
+                  (assoc headers :accept t :content-type t)
+                  headers)
     ; Currently does not specify an interchange format to the server
     (when-let [xhr (.send *xhr-manager*
                           (or id (js/Math.random))
                           url
                           (method-map method)
-                          body
+                          ((unparser interchange opts) body)
                           (into {} (map (fn [[k v]] [(name k) v]) headers))
                           priority
                           (handle-response url start-time out (parser interchange opts) callback)

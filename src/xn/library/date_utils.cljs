@@ -113,3 +113,27 @@
 
 (def max-date (max-by date->ms time/date?))
 
+; Transit handlers
+
+(def transit-verbose-format (ftime/formatter "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"))
+
+(deftype VerboseDateHandler []
+  Object
+  (tag [_ v] "t")
+  (rep [_ v] (ftime/unparse-local transit-verbose-format v))
+  (stringRep [h v] (.rep h v)))
+
+(deftype DateHandler []
+  Object
+  (tag [_ v] "m")
+  (rep [_ v] (.valueOf v))
+  (stringRep [h v] (str (.rep h v)))
+  (getVerboseHandler [_ v] (VerboseDateHandler.)))
+
+(def date-read-handlers
+  {"m" #(ms->date (if (number? %) % (js/parseInt %)))
+   "t" (->format-date transit-verbose-format)})
+
+(def date-write-handlers
+  {goog.date.UtcDateTime (DateHandler.)
+   goog.date.DateTime (DateHandler.)})
