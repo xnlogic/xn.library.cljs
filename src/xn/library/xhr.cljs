@@ -73,7 +73,7 @@
                        :status-text (if (zero? status) "Server Unavailable" (.getStatusText r))
                        :msecs (- (.getTime (js/Date.)) start-time)}
                       (catch js/Error e
-                        (js/console.error "response hondler exception" e)
+                        (js/console.error "Response handler exception: " e)
                         {:success? false
                          :error e
                          :body (.getResponse r)
