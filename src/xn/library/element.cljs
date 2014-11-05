@@ -40,6 +40,22 @@
                             :onClick f}))
     body)))
 
+(defn row
+  ([body]
+    (row nil body))
+  ([opts body]
+    (dom/div
+      (clj->js (merge opts {:className (str "row " (:className opts))}))
+      
+    body)))
+
+(defn column [sizes & body]
+  (let [cols (map (fn [[screen width]] (str "col-" (name screen) "-" width )) sizes)]
+    (apply dom/div
+      #js {:className (clojure.string/join " " cols)}
+      body)))
+
+
 (defn table
   "Basic structure:
      head-rows and rows are both a vector of vectors of cell contents.
