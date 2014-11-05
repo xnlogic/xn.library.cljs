@@ -17,10 +17,28 @@
    (button nil f body))
   ([opts f body]
    (dom/button
-     (clj->js (merge opts {:className (str "btn " (:className opts))
+     (clj->js (merge opts {:className (str "btn btn-default " (:className opts))
                            :onClick f}))
      body)))
 
+
+(defn list-item
+  ([f body]
+    (list-item nil f body))
+  ([opts f body]
+    (dom/li
+      (clj->js (merge opts {:className (str "list-group-item " (:className opts))
+                            :onClick f}))
+    body)))
+
+(defn select
+  ([f body]
+    (select nil f body))
+  ([opts f body]
+    (dom/select
+      (clj->js (merge opts {:className (str "form-control " (:className opts))
+                            :onClick f}))
+    body)))
 
 (defn table
   "Basic structure:
