@@ -55,6 +55,13 @@
       #js {:className (clojure.string/join " " cols)}
       body)))
 
+(defn panel
+  ([body]
+    (panel nil body))
+  ([opts body]
+    (dom/div
+      (clj->js (merge opts {:className (str "panel " (:className opts))}))
+    body)))
 
 (defn table
   "Basic structure:
