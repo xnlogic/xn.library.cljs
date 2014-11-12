@@ -132,7 +132,7 @@
 
 (def date-read-handlers
   {"m" #(ms->date (if (number? %) % (js/parseInt %)))
-   "t" (->format-date transit-verbose-format)})
+   "t" #(ftime/parse-local transit-verbose-format %)})
 
 (def date-write-handlers
   {goog.date.UtcDateTime (DateHandler.)
