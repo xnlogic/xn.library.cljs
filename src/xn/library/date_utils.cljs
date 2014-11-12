@@ -120,7 +120,7 @@
 (deftype VerboseDateHandler []
   Object
   (tag [_ v] "t")
-  (rep [_ v] (ftime/unparse-local transit-verbose-format v))
+  (rep [_ v] (str (ftime/unparse-local transit-verbose-format v) "Z"))
   (stringRep [h v] (.rep h v)))
 
 (deftype DateHandler []

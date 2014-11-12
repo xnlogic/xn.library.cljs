@@ -53,7 +53,7 @@
 
 (defmethod unparser :transit-verbose [_ {:keys [handlers]}]
   (let [writer
-        (t/writer :json
+        (t/writer :json-verbose
                   {:handlers (merge date-write-handlers handlers)})]
     (fn [body]
       (when body (t/write writer body)))))
