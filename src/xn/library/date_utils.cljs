@@ -137,3 +137,14 @@
 (def date-write-handlers
   {goog.date.UtcDateTime (DateHandler.)
    goog.date.DateTime (DateHandler.)})
+
+(defn add-equiv-protocol! []
+  (extend-protocol IEquiv
+    goog.date.UtcDateTime
+    (-equiv [d other]
+      (and (instance? goog.date.Date other)
+           (= (.getTime d) (.getTime other))))
+    goog.date.DateTime
+    (-equiv [d other]
+      (and (instance? goog.date.Date other)
+           (= (.getTime d) (.getTime other))))))
