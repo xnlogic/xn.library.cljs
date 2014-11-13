@@ -45,12 +45,16 @@
 
 (defn grouped-by
   "A transducer that acts like (seq (group-by f coll))"
-  [f]
+  [f & {:keys [keys?] :or {keys? true}}]
   (fn [rf]
     (let [group (volatile (transient (array-map)))]
       (fn
         ([] (rf))
-        ([result] (rf (reduce rf result (persistent! @group))))
+        ([result]
+         (rf
+           (if keys?
+             (reduce rf result (persistent! @group))
+             (reduce rf result (vals (persistent! @group))))))
         ([result x]
          (-swap! group (fn [g]
                          (let [k (f x)]

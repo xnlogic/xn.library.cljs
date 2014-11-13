@@ -24,6 +24,13 @@
 
 (defmulti parser (fn [interchange opts] interchange))
 
+(defmethod parser :transit-verbose [_ {:keys [handlers]}]
+  (let [reader
+        (t/reader :json-verbose
+                  {:handlers (merge date-read-handlers handlers)})]
+    (fn [response]
+      (t/read reader (.getResponse response)))))
+
 (defmethod parser :transit [_ {:keys [handlers]}]
   (let [reader
         (t/reader :json
@@ -43,6 +50,13 @@
     (.getResponse response)))
 
 (defmulti unparser (fn [interchange opts] interchange))
+
+(defmethod unparser :transit-verbose [_ {:keys [handlers]}]
+  (let [writer
+        (t/writer :json-verbose
+                  {:handlers (merge date-write-handlers handlers)})]
+    (fn [body]
+      (when body (t/write writer body)))))
 
 (defmethod unparser :transit [_ {:keys [handlers]}]
   (let [writer
@@ -96,7 +110,8 @@
 (def mime-type {:xml "application/xml"
                 :json "application/json"
                 :json-transit "application/json"
-                :transit "application/transit+json"})
+                :transit "application/transit+json"
+                :transit-verbose "application/transit+json-verbose"})
 
 
 (defn request

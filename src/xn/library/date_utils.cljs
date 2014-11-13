@@ -120,7 +120,7 @@
 (deftype VerboseDateHandler []
   Object
   (tag [_ v] "t")
-  (rep [_ v] (ftime/unparse-local transit-verbose-format v))
+  (rep [_ v] (str (ftime/unparse-local transit-verbose-format v) "Z"))
   (stringRep [h v] (.rep h v)))
 
 (deftype DateHandler []
@@ -132,8 +132,19 @@
 
 (def date-read-handlers
   {"m" #(ms->date (if (number? %) % (js/parseInt %)))
-   "t" (->format-date transit-verbose-format)})
+   "t" #(ftime/parse-local transit-verbose-format %)})
 
 (def date-write-handlers
   {goog.date.UtcDateTime (DateHandler.)
    goog.date.DateTime (DateHandler.)})
+
+(defn add-equiv-protocol! []
+  (extend-protocol IEquiv
+    goog.date.UtcDateTime
+    (-equiv [d other]
+      (and (instance? goog.date.Date other)
+           (= (.getTime d) (.getTime other))))
+    goog.date.DateTime
+    (-equiv [d other]
+      (and (instance? goog.date.Date other)
+           (= (.getTime d) (.getTime other))))))
