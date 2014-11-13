@@ -56,12 +56,18 @@
       body)))
 
 (defn panel
-  ([body]
-    (panel nil body))
-  ([opts body]
+  ([heading body]
+    (panel nil heading body))
+  ([opts heading body]
     (dom/div
-      (clj->js (merge opts {:className (str "panel " (:className opts))}))
-    body)))
+      #js {:className "panel panel-default"}
+      (dom/div
+        #js {:className "panel-heading"}
+        heading
+        )
+      (dom/div
+        #js {:className "panel-body"}
+        body))))
 
 (defn table
   "Basic structure:
