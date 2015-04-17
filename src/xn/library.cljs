@@ -1,31 +1,13 @@
 (ns xn.library
-  (:require [clojure.string :refer [blank?]])
+  (:require [clojure.string :refer [blank?] :as s])
   (:import [goog.ui IdGenerator]))
-
-
-(deftype Volatile [^:mutable data]
-  IDeref
-  (-deref [_] data)
-
-  IReset
-  (-reset! [_ new-value]
-    (set! data new-value))
-
-  ISwap
-  (-swap! [o f] (set! data (f data)))
-  (-swap! [o f a] (set! data (f data a)))
-  (-swap! [o f a b] (set! data (f data a b)))
-  (-swap! [o f a b xs] (set! data (apply f data a b xs))))
-
-
-(defn volatile
-  "Like atom but stripped of all unneccessary features. Meant for internal use within a function."
-  [data]
-  (Volatile. data))
 
 
 (defn reduce! [f o c]
   (persistent! (reduce f (transient o) c)))
+
+(defn reduce-kv! [f o c]
+  (persistent! (reduce-kv f (transient o) c)))
 
 (defn dissoc-in
   "Disassociates a value in a nested associative structure, where ks is a
@@ -45,14 +27,18 @@
 
 (defn grouped-by
   "A transducer that acts like (seq (group-by f coll))"
-  [f]
+  [f & {:keys [keys?] :or {keys? true}}]
   (fn [rf]
-    (let [group (volatile (transient (array-map)))]
+    (let [group (volatile! (transient (array-map)))]
       (fn
         ([] (rf))
-        ([result] (rf (reduce rf result (persistent! @group))))
+        ([result]
+         (rf
+           (if keys?
+             (reduce rf result (persistent! @group))
+             (reduce rf result (vals (persistent! @group))))))
         ([result x]
-         (-swap! group (fn [g]
+         (vswap! group (fn [g]
                          (let [k (f x)]
                            (if-let [v (get g k)]
                              (assoc! g k (conj v x))
@@ -67,12 +53,12 @@
         (map (fn [[k vals]] (last vals))))"
   ([f]
    (fn [rf]
-     (let [matches (volatile (transient (array-map)))]
+     (let [matches (volatile! (transient (array-map)))]
        (fn
          ([] (rf))
          ([result] (rf (reduce rf result (vals (persistent! @matches)))))
          ([result x]
-          (-swap! matches assoc! (f x) x)
+          (vswap! matches assoc! (f x) x)
           result)))))
   ([f coll]
    (sequence (lasts-by f) coll)))
@@ -100,6 +86,11 @@
        (->> index keys (apply max) index first)))))
 
 
+(defn index-by [f coll]
+  (reduce (fn [idx el] (assoc idx (f el) el))
+          {}
+          coll))
+
 (defn parse-int [s]
   (let [value (js/parseInt s)]
     (when-not (js/isNaN value) value)))
@@ -111,4 +102,17 @@
 
 
 (defn blank->nil [s]
-  (if (blank? s) nil s))
+  (when-not (blank? s) s))
+
+
+(defn string->regex [s]
+  (when-not (blank? s)
+    (re-pattern (str "(?i)" (s/replace s #"\s+" ".*")))))
+
+(defn juxt-some [& fs]
+  (when-let [fs (seq (remove nil? fs))]
+    (apply juxt fs)))
+
+(defn comp-some [& fs]
+  (when-let [fs (seq (remove nil? fs))]
+    (apply comp fs)))

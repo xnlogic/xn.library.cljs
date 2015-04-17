@@ -20,8 +20,7 @@
 (defn take-for [msecs in]
   (let [cs [in (timeout msecs)]]
     (go-loop-alts in out [] [[m c] cs]
-                  (when m
-                    (do (>! out m) (recur))))))
+                  (when m (>! out m) (recur)))))
 
 (defn cap
   "Like dorun for a channel"

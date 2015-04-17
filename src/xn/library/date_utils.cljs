@@ -4,6 +4,7 @@
     [cljs-time.core :as time :refer [year month day hour minute second milli]]
     [cljs-time.local :as ltime]
     [cljs-time.format :as ftime]
+    cljs-time.extend ; this will add IEquiv to goog.Date*
     goog.date.UtcDateTime
     goog.date.DateTime
     cljs.reader)
@@ -44,6 +45,16 @@
 
 (defn zero-pad [n]
   (if (<= 0 n 9) (str "0" n) (str n)))
+
+(defn seconds->hours [s]
+  (let [total (if (neg? s) (- s) s)
+        hour (js/Math.floor (/ total 3600))
+        mins (js/Math.floor (/ (mod total 3600) 60 ))
+        secs (mod total 60)]
+        (str
+          (when (and (< s 60) (neg? s)) "-")
+          (when-not (zero? hour) (str hour "h "))
+          (str mins "m "))))
 
 (defn format-minute [m]
   (let [hour (js/Math.floor (/ m 60))
@@ -120,7 +131,7 @@
 (deftype VerboseDateHandler []
   Object
   (tag [_ v] "t")
-  (rep [_ v] (ftime/unparse-local transit-verbose-format v))
+  (rep [_ v] (str (ftime/unparse-local transit-verbose-format v) "Z"))
   (stringRep [h v] (.rep h v)))
 
 (deftype DateHandler []
@@ -132,8 +143,19 @@
 
 (def date-read-handlers
   {"m" #(ms->date (if (number? %) % (js/parseInt %)))
-   "t" (->format-date transit-verbose-format)})
+   "t" #(ftime/parse-local transit-verbose-format %)})
 
 (def date-write-handlers
   {goog.date.UtcDateTime (DateHandler.)
    goog.date.DateTime (DateHandler.)})
+
+(defn add-equiv-protocol! []
+  (extend-protocol IEquiv
+    goog.date.UtcDateTime
+    (-equiv [d other]
+      (and (instance? goog.date.Date other)
+           (= (.getTime d) (.getTime other))))
+    goog.date.DateTime
+    (-equiv [d other]
+      (and (instance? goog.date.Date other)
+           (= (.getTime d) (.getTime other))))))

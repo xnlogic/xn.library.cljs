@@ -3,7 +3,8 @@
   (:require goog.net.XhrManager
             [cljs.core.async :as async :refer [<! >! chan alts! put!]]
             [cognitect.transit :as t]
-            [xn.library.date-utils :refer [date-read-handlers date-write-handlers]])
+            [xn.library.date-utils :refer [date-read-handlers date-write-handlers]]
+            [clojure.string :as s])
   (:require-macros
     [cljs.core.async.macros :as m :refer [go]]))
 
@@ -24,12 +25,26 @@
 
 (defmulti parser (fn [interchange opts] interchange))
 
+(defmethod parser :transit-verbose [_ {:keys [handlers]}]
+  (let [reader
+        (t/reader :json-verbose
+                  {:handlers (merge date-read-handlers handlers)})]
+    (fn [response]
+      (when-let [data (.getResponse response)]
+        (when-not (s/blank? data)
+          (t/read reader data))))))
+
 (defmethod parser :transit [_ {:keys [handlers]}]
   (let [reader
         (t/reader :json
                   {:handlers (merge date-read-handlers handlers)})]
     (fn [response]
-      (t/read reader (.getResponse response)))))
+      (when-let [data (.getResponse response)]
+        (when-not (s/blank? data)
+          (t/read reader data))))))
+
+(defmethod parser :form->json [_ opts]
+  (parser :json opts))
 
 (defmethod parser :json-transit [_ opts]
   (parser :transit opts))
@@ -43,6 +58,13 @@
     (.getResponse response)))
 
 (defmulti unparser (fn [interchange opts] interchange))
+
+(defmethod unparser :transit-verbose [_ {:keys [handlers]}]
+  (let [writer
+        (t/writer :json-verbose
+                  {:handlers (merge date-write-handlers handlers)})]
+    (fn [body]
+      (when body (t/write writer body)))))
 
 (defmethod unparser :transit [_ {:keys [handlers]}]
   (let [writer
@@ -93,11 +115,16 @@
       (go (>! out result)))))
 
 ; json-transit is using json but with transit for parsing
-(def mime-type {:xml "application/xml"
-                :json "application/json"
-                :json-transit "application/json"
-                :transit "application/transit+json"})
+(def accept-mime-type
+  {:xml "application/xml"
+   :json "application/json"
+   :json-transit "application/json"
+   :transit "application/transit+json"
+   :transit-verbose "application/transit+json-verbose"})
 
+; Currently same, but variations could be defined if expected request and response types
+; are not the same.
+(def request-mime-type accept-mime-type)
 
 (defn request
   "Asynchronously make a network request for the resource at url.  The
@@ -121,9 +148,10 @@
                interchange :json-transit}
         :as opts}]
   (let [start-time (js/Date.)
-        headers (if-let [t (mime-type interchange)]
-                  (assoc headers :accept t :content-type t)
-                  headers)
+        headers (merge (cond-> {}
+                         (accept-mime-type interchange) (assoc :accept (accept-mime-type interchange))
+                         (request-mime-type interchange) (assoc :content-type (request-mime-type interchange)))
+                       headers)
         ; ensure callback can only be called once
         callback (atom callback)]
     ; Currently does not specify an interchange format to the server
@@ -165,7 +193,7 @@
                                :cancelled-by c
                                :msecs (- (js/Date.) start-time)})]
                     (swap! callback (fn [f]
-                                      (when (f (ex-info (:status-text err) err) nil))
+                                      (when f (f (ex-info (:status-text err) err) nil))
                                       nil))
                     (>! out2 err))))))
           out2)
